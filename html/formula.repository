@@ -1,0 +1,2 @@
+\_form#0=103x16:$ \mathbf{v}_i := \mathbf{v}_i + \frac{1}{2 m} \, \mathbf{f}_i \Delta t $
+\_form#1=83x13:$ \mathbf{r}_i := \mathbf{r}_i + \mathbf{v}_i \Delta t $

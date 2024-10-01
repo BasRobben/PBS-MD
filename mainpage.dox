@@ -1,0 +1,87 @@
+/**
+@mainpage Documentation of MD-PBS
+@tableofcontents
+
+This is the base Molecular Dynamics code of the class Particle-based Simulations.
+It implements a periodic simulation box filled with Lennard-Jones particles.
+In the code, a velocity-Verlet scheme is implemented in the @ref main function.
+
+Within one time step, the velocity-Verlet scheme sequentially performs:
+- @f$ \mathbf{v}_i := \mathbf{v}_i + \frac{1}{2 m} \, \mathbf{f}_i \Delta t @f$, in @ref update_velocities_half_dt
+- Change velocities by thermostatting. This needs to be implemented in @ref thermostat
+- @f$ \mathbf{r}_i := \mathbf{r}_i + \mathbf{v}_i \Delta t @f$ in @ref update_positions
+- Put all particles back in the simulation box, taking into account periodic boundary conditions in @ref boundary_conditions
+- Update the neighbor list in @ref update_nbrlist
+- Compute forces in @ref calculate_forces, using the updated positions and neighbor list
+- @f$ \mathbf{v}_i := \mathbf{v}_i + \frac{1}{2 m} \, \mathbf{f}_i \Delta t @f$ in @ref update_velocities_half_dt
+
+@section intro_sec Introduction
+
+This Molecular Dynamics (MD) code simulates a one-species Lennard-Jones (LJ) fluid. The code models non-bonded interactions using the Lennard-Jones potential and is designed to compute the structural and dynamic properties of simple fluids.
+
+The code is modular, with components responsible for initializing particle configurations, calculating forces, propagating the system in time using molecular dynamics, managing neighbor lists for efficient force calculation, and outputting data for visualization and further analysis.
+
+@section structure_sec Code Structure
+
+The code is organized into several key modules:
+
+- **main.c**: The central part of the simulation that initializes the system parameters, particle positions, velocities, and executes the main MD loop using velocity-Verlet integration.
+- **initialise.c**: Handles system initialization, including setting up the initial particle positions and velocities. For the Lennard-Jones fluid, particles are placed in a simulation box with random initial positions and velocities.
+- **forces.c**: Computes the non-bonded forces between particles using the Lennard-Jones potential. This module handles the force calculations based on the neighbor list, ensuring efficient computation for large systems.
+- **dynamics.c**: Manages the time integration of the particle positions and velocities using the velocity-Verlet algorithm. This module also handles the application of boundary conditions and thermostats to control the temperature of the system.
+- **nbrlist.c**: Maintains the neighbor list to optimize the calculation of non-bonded forces. The neighbor list reduces the number of particle pairs that need to be checked for interactions, improving the efficiency of the simulation.
+- **fileoutput.c**: Outputs simulation data such as particle positions and energies in formats that can be used for post-simulation analysis and visualization.
+
+@section key_components Key Components
+
+Here’s a breakdown of the key components in the code:
+
+- **Initialization (initialise.c)**:
+  - The `initialise` function sets up the particle positions and velocities at the start of the simulation. Particles are positioned randomly in a cubic simulation box, and their velocities are initialized according to a temperature-dependent Maxwell-Boltzmann distribution.
+  
+- **Force Calculation (forces.c)**:
+  - The `calculate_forces` function computes the non-bonded forces between particles using the Lennard-Jones potential. The potential includes a cutoff distance to limit interactions to nearby particles, enhancing the efficiency of the simulation.
+  - This module also supports periodic boundary conditions, ensuring that particles interact correctly across the boundaries of the simulation box.
+  
+- **Time Integration (dynamics.c)**:
+  - The `update_positions` and `update_velocities_half_dt` functions implement the velocity-Verlet algorithm, which is used to propagate the system in time. The algorithm updates particle positions and velocities over each time step, ensuring the conservation of energy and stability of the simulation.
+  - The `boundary_conditions` function applies periodic boundary conditions to ensure particles that move beyond the simulation box are wrapped around, maintaining a continuous system.
+  
+- **Neighbor List (nbrlist.c)**:
+  - The `build_nbrlist` function constructs the neighbor list, which limits force calculations to nearby particles within a specified cutoff distance. This significantly reduces the computational cost for large systems by avoiding unnecessary force calculations between distant particles.
+  
+- **Data Output (fileoutput.c)**:
+  - The `record_trajectories_pdb` and `record_trajectories_xyz` functions output particle positions in `.pdb` and `.xyz` formats, respectively. These files can be used for visualizing the particle configurations using external tools like OVITO.
+  - Energy and other relevant system properties are also output periodically to help monitor the system’s evolution during the simulation.
+
+@section simulation_flow Simulation Flow
+
+The typical flow of a simulation is as follows:
+
+1. **Initialization**:
+   - The system parameters (e.g., number of particles, temperature, time step, etc.) are set up.
+   - The initial particle positions and velocities are initialized.
+   
+2. **Neighbor List Construction**:
+   - The neighbor list is built, ensuring that only nearby particles are considered for force calculations.
+   
+3. **Main MD Loop**:
+   - For each time step, the following steps are performed:
+     - Forces are calculated using the Lennard-Jones potential.
+     - Particle velocities are updated (half-step).
+     - Particle positions are updated.
+     - Velocities are updated again (half-step) to complete the time step.
+     - Periodic boundary conditions are applied to particles that move outside the simulation box.
+     - Data is output at regular intervals.
+   
+4. **Finalization**:
+   - The simulation ends after the specified number of time steps, and final data (e.g., particle positions) is saved.
+
+@section additional_info Additional Information
+
+- **Units**: The code uses reduced units based on the Lennard-Jones potential. Ensure that the input parameters (e.g., temperature, time step) are specified in the correct reduced units for consistent results.
+
+- **Extensions**: The modular structure of the code allows for easy extensions, such as adding bonded interactions (e.g., bond-stretch, angle-bend, dihedral-torsion) or implementing multi-species systems. The `forces.c` and `initialise.c` modules can be expanded to include these features.
+
+For further details, refer to the individual modules and their corresponding documentation. 
+*/
