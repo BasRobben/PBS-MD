@@ -77,7 +77,6 @@ int main(void)
     {   
     // TODO: Initialize particle types (methane and ethane) in vectors.type array
     // TODO: Implement the bonds between ethane's CH3 groups in initialise_bonds (initialise.c)
-
         initialise(&parameters, &vectors, &nbrlist, &step, &time);
     }
 

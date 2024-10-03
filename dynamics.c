@@ -46,21 +46,33 @@ void update_positions(struct Parameters *p_parameters, struct Nbrlist *p_nbrlist
 double update_velocities_half_dt(struct Parameters *p_parameters, struct Nbrlist *p_nbrlist, struct Vectors *p_vectors)
 {
     double Ekin = 0.0;  // Initialize kinetic energy
-    const double factor = 0.5 / p_parameters->mass * p_parameters->dt;  // Factor for velocity update
+    const double factor_m = 0.5 / p_parameters->mass_m * p_parameters->dt;  // Factor for velocity update
+    const double factor_e = 0.5 / p_parameters->mass_e * p_parameters->dt;  // Factor for velocity update
     struct Vec3D *v = p_vectors->v;  // Particle velocities
     struct Vec3D *f = p_vectors->f;  // Forces acting on particles
 
     // Loop over all particles and update their velocities
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
-        v[i].x += factor * f[i].x;  // Update velocity in x-direction
-        v[i].y += factor * f[i].y;  // Update velocity in y-direction
-        v[i].z += factor * f[i].z;  // Update velocity in z-direction
-        Ekin += v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z;  // Accumulate kinetic energy
+        if (p_vectors -> type[i] == 0) // Methane
+        {
+            v[i].x += factor_m * f[i].x;  // Update velocity in x-direction
+            v[i].y += factor_m * f[i].y;  // Update velocity in y-direction
+            v[i].z += factor_m * f[i].z;  // Update velocity in z-direction
+            Ekin += p_parameters->mass_m * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z); // Accumulate kinetic energy
+        }
+        else if (p_vectors -> type[i] == 1) // Ethane
+        {
+            v[i].x += factor_e * f[i].x;  // Update velocity in x-direction
+            v[i].y += factor_e * f[i].y;  // Update velocity in y-direction
+            v[i].z += factor_e * f[i].z;  // Update velocity in z-direction
+            Ekin += p_parameters->mass_e * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z);
+        }
+
     }
 
     // Final kinetic energy calculation
-    Ekin = 0.5 * Ekin * p_parameters->mass;
+    Ekin = 0.5 * Ekin;
     return Ekin;  // Return the system's kinetic energy
 }
 
@@ -95,26 +107,28 @@ double thermostat(struct Parameters *p_parameters, struct Vectors *p_vectors, do
     double TmeasT0;                             // Measured temperature divided by T0
     double lambda;                              // Scaling factor
     double kT = p_parameters->kT;               // Thermal energy
-    double m = p_parameters->mass;              // Mass of a particle
 
     double Nfree = 3*(num_part - 1);            // Number of degrees of freedom
-    double tau = 0.1;                           // Relaxation time for the thermostat
+    double tau = 0.001;                          // Relaxation time for the thermostat
     Ekin = 0;                                   // Reset kinetic energy
 
     for (size_t i = 0; i < num_part; i++)
     {
-        Ekin += v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z;  // Calculate kinetic energy
+        if (p_vectors -> type[i] == 0) // Methane
+            Ekin += p_parameters->mass_m * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z);  // Calculate kinetic energy
+        else if (p_vectors -> type[i] == 1) // Ethane
+            Ekin += p_parameters->mass_e * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z);  // Calculate kinetic energy
     }
 
     TmeasT0 = Ekin / (Nfree * kT);                // Measured temperature divided by T0
-    lambda = sqrt(1.0 + p_parameters->dt / tau * (1 / TmeasT0 - 1.0));  // Scaling factor
+    // lambda = sqrt(1.0 + p_parameters->dt / tau * (1 / TmeasT0 - 1.0));  // Scaling factor
 
-    for (size_t i = 0; i < num_part; i++)
-    {
-        v[i].x *= lambda;  // Rescale velocity in x-direction
-        v[i].y *= lambda;  // Rescale velocity in y-direction
-        v[i].z *= lambda;  // Rescale velocity in z-direction
-    }
+    // for (size_t i = 0; i < num_part; i++)
+    // {
+    //     v[i].x *= lambda;  // Rescale velocity in x-direction
+    //     v[i].y *= lambda;  // Rescale velocity in y-direction
+    //     v[i].z *= lambda;  // Rescale velocity in z-direction
+    // }
     
     return TmeasT0;  // Return the temperature ratio
 }

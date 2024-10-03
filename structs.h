@@ -25,9 +25,18 @@ struct Parameters
     int exclude_12_nb;       //!< If true (=1) 1-2 connected atoms are exluded from non-bonded interactions 
     int exclude_13_nb;       //!< If true (-1) 1-3 connected atoms are exluded from non-bonded interactions    
     double kT;               //!< Thermal energy
-    double mass;             //!< Mass of a particle
-    double epsilon;          //!< LJ interaction strength
-    double sigma;            //!< LJ particle diameter
+
+    double mass_m;             //!< Mass of a CH4 particle
+    double epsilon_m;          //!< LJ interaction strength CH4-CH4
+    double sigma_m;            //!< LJ particle diameter CH3
+
+    double mass_e;             //!< Mass of a CH3 particle
+    double epsilon_e;          //!< LJ interaction strength CH3-CH3
+    double sigma_e;            //!< LJ particle diameter CH3
+
+    size_t num_methane;       //!< Number of methane particles
+    size_t num_ethane;        //!< Number of ethane particles
+
     double r_cut;            //!< Cut-off distance for LJ interaction
     double r_shell;          //!< Shell thickness for neighbor list
     size_t num_dt_pdb;       //!< Number of time steps between pdb saves

@@ -11,22 +11,29 @@
 // later to initialize different types (e.g., methane and ethane in a binary mixture).
 void initialise_types(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {
-    for (size_t i = 0; i < p_parameters->num_part; i++)
-        p_vectors->type[i] = 0; // Specify particle type (currently only one type)
+    size_t num_part = p_parameters->num_part;
+    size_t num_methane = p_parameters->num_methane;
+    size_t num_ethane = p_parameters->num_ethane;
+    
+    for (size_t i = 0; i < num_part; i++){
+        if (i < num_methane)
+            p_vectors->type[i] = 0;
+        else
+            p_vectors->type[i] = 1;
+    }
 }
 
 void initialise_bond_connectivity(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {   
-    double num_part = p_parameters->num_part;
+    size_t num_part = p_parameters->num_part;
+    size_t num_ethane = p_parameters->num_ethane;
 
-    // Check if the number of particles is even
-    if (fmod(num_part, 2) != 0) {
-        fprintf(stderr, "Error: Number of particles must be even for ethane\n");
+    if(num_ethane % 2 != 0){
+        fprintf(stderr, "Error: Number of ethane particles must be even\n");
         exit(EXIT_FAILURE);
     }
 
-    // Number of bonds is half the number of particles for pure ethane
-    size_t num_bonds = num_part / 2;
+    int num_bonds = num_ethane / 2;
 
     // Free existing bonds if already allocated
     if (p_vectors->bonds != NULL) {
@@ -204,53 +211,25 @@ void initialise(struct Parameters *p_parameters, struct Vectors *p_vectors, stru
     return;
 }
 
-// // This function initializes particle positions on a cubic lattice.
-// // Particles are placed in a grid with spacing based on the number of particles and the box dimensions.
-// void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vectors)
-// {
-//     struct Vec3D dr;  // Displacement vector for positioning particles
-//     struct Index3D n; // Number of grid cells along each axis
-//     double dl;        // Lattice spacing
-//     int ipart = 0;    // Particle index
-
-//     // Calculate lattice spacing based on particle number and box dimensions
-//     dl = pow(p_parameters->L.x * p_parameters->L.y * p_parameters->L.z / ((double)p_parameters->num_part), 1.0 / 3.0);
-//     n.i = (int)ceil(p_parameters->L.x / dl);
-//     n.j = (int)ceil(p_parameters->L.y / dl);
-//     n.k = (int)ceil(p_parameters->L.z / dl);
-//     dr.x = p_parameters->L.x / (double)n.i;
-//     dr.y = p_parameters->L.y / (double)n.j;
-//     dr.z = p_parameters->L.z / (double)n.k;
-//     ipart = 0;
-//     for (size_t i = 0; i < n.i; ++i)
-//         for (size_t j = 0; j < n.j; ++j)
-//             for (size_t k = 0; k < n.k; ++k, ++ipart)
-//             {
-//                 if (ipart >= p_parameters->num_part)
-//                     break;
-//                 p_vectors->r[ipart].x = (i + 0.5) * dr.x;
-//                 p_vectors->r[ipart].y = (j + 0.5) * dr.y;
-//                 p_vectors->r[ipart].z = (k + 0.5) * dr.z;
-//                 //      p_vectors->r[ipart].x = p_parameters->L.x*generate_uniform_random();
-//                 //      p_vectors->r[ipart].y = p_parameters->L.y*generate_uniform_random();
-//                 //      p_vectors->r[ipart].z = p_parameters->L.z*generate_uniform_random();
-//             }
-// }
-
-// This function initializes particle positions on a cubic lattice.
-// Particles are placed in a grid with spacing based on the number of particles and the box dimensions.
 void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {
     struct Vec3D dr;  // Displacement vector for positioning particles
     struct Index3D n; // Number of grid cells along each axis
     double dl;        // Lattice spacing
     int ipart = 0;    // Particle index
-    double r0 = p_parameters->r0; // Initial distance between particles
-    double num_bonds = p_vectors->num_bonds; // Number of bonds
+    double r0 = p_parameters->r0; // Initial distance between bonded particles
+    size_t num_part = p_parameters->num_part; // Total number of particles
 
     // Calculate lattice spacing based on particle number and box dimensions
     double box_volume = p_parameters->L.x * p_parameters->L.y * p_parameters->L.z;
-    dl = pow(box_volume / num_bonds, 1.0 / 3.0);
+    
+    // Ensure box volume is sufficient
+    if (num_part <= 0 || box_volume <= 0) {
+        fprintf(stderr, "Error: Invalid number of particles or box volume.\n");
+        return;
+    }
+
+    dl = pow(box_volume / num_part, 1.0 / 3.0); // Ensure sufficient spacing
 
     // Update number of grid cells based on lattice spacing
     n.i = (int)ceil(p_parameters->L.x / dl);
@@ -261,31 +240,35 @@ void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vec
     dr.y = p_parameters->L.y / (double)n.j;
     dr.z = p_parameters->L.z / (double)n.k;
 
+    // Reset particle index
     ipart = 0;
     
+    // Loop to initialize positions
     for (size_t i = 0; i < n.i; ++i)
     {
         for (size_t j = 0; j < n.j; ++j)
         {
             for (size_t k = 0; k < n.k; ++k)
             {
-                if (ipart >= p_parameters->num_part)
-                    break;
+                // Check if we've reached the desired number of particles
+                if (ipart >= num_part)
+                    return;
 
-                // Place the first particle of the pair
+                // Place the first particle (can be either methane or ethane)
                 p_vectors->r[ipart].x = (i + 0.5) * dr.x;
                 p_vectors->r[ipart].y = (j + 0.5) * dr.y;
                 p_vectors->r[ipart].z = (k + 0.5) * dr.z;
 
-                // Place the second particle of the pair at a distance r0
-                ipart++;
-                if (ipart < p_parameters->num_part) // Ensure within bounds
+                ipart++; // Move to the next particle
+
+                // If the particle is ethane, place the second particle
+                if (ipart < num_part && p_vectors->type[ipart - 1] == 1) // Assuming type 1 is ethane
                 {
                     p_vectors->r[ipart].x = p_vectors->r[ipart - 1].x + r0; // Adjust x coordinate by r0
                     p_vectors->r[ipart].y = p_vectors->r[ipart - 1].y;     // Keep y coordinate the same
                     p_vectors->r[ipart].z = p_vectors->r[ipart - 1].z;     // Keep z coordinate the same
+                    ipart++; // Move to the next particle (for ethane, which has two particles)
                 }
-                ipart++; // Move to the next molecule
             }
         }
     }
@@ -294,16 +277,33 @@ void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vec
 // This function initializes the velocities of particles based on the Maxwell-Boltzmann distribution.
 // The total momentum is also removed to ensure zero total momentum (important for stability).
 void initialise_velocities(struct Parameters *p_parameters, struct Vectors *p_vectors)
-{
-    double sqrtktm = sqrt(p_parameters->kT / p_parameters->mass);
+{   
     struct Vec3D sumv = {0.0, 0.0, 0.0};  // Total velocity (to remove later)
 
-    // Assign random velocities to each particle
+    // Assign random velocities to each particle based on type
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
-        p_vectors->v[i].x = sqrtktm * gauss();
-        p_vectors->v[i].y = sqrtktm * gauss();
-        p_vectors->v[i].z = sqrtktm * gauss();
+        // Initialize velocities based on particle type
+        if (p_vectors->type[i] == 0) { // Methane
+            double sqrtktm = sqrt(p_parameters->kT / p_parameters->mass_m);
+            p_vectors->v[i].x = sqrtktm * gauss();
+            p_vectors->v[i].y = sqrtktm * gauss();
+            p_vectors->v[i].z = sqrtktm * gauss();
+        } 
+        else if (p_vectors->type[i] == 1) { // Ethane
+            double sqrtktm = sqrt(p_parameters->kT / p_parameters->mass_e);
+            p_vectors->v[i].x = sqrtktm * gauss();
+            p_vectors->v[i].y = sqrtktm * gauss();
+            p_vectors->v[i].z = sqrtktm * gauss();
+
+            // Check for the next particle to adjust its velocity
+            if (i + 1 < p_parameters->num_part && p_vectors->type[i + 1] == 1) { // Next is also CH3
+                p_vectors->v[i + 1].x = p_vectors->v[i].x + (sqrtktm * gauss()) * 0.1;
+                p_vectors->v[i + 1].y = p_vectors->v[i].y + (sqrtktm * gauss()) * 0.1;
+                p_vectors->v[i + 1].z = p_vectors->v[i].z + (sqrtktm * gauss()) * 0.1;
+                i++; // Skip the next particle since we've initialized it
+            }
+        }
         sumv.x += p_vectors->v[i].x;
         sumv.y += p_vectors->v[i].y;
         sumv.z += p_vectors->v[i].z;

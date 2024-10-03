@@ -64,9 +64,9 @@ double calculate_forces_bond(struct Parameters *p_parameters, struct Vectors *p_
 
         // Calculate the force on particles i and j
         double inv_r_ij = 1.0 / r_ij;
-        fi.x = kb * (r_ij - r0) * rij.x * inv_r_ij;
-        fi.y = kb * (r_ij - r0) * rij.y * inv_r_ij;
-        fi.z = kb * (r_ij - r0) * rij.z * inv_r_ij;
+        fi.x = -kb * (r_ij - r0) * rij.x * inv_r_ij;
+        fi.y = -kb * (r_ij - r0) * rij.y * inv_r_ij;
+        fi.z = -kb * (r_ij - r0) * rij.z * inv_r_ij;
 
         // Update forces on particles i and j
         f[i].x += fi.x;
@@ -194,14 +194,9 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
     size_t num_part = p_parameters->num_part;
 
     r_cutsq = p_parameters->r_cut * p_parameters->r_cut;
-    sigmasq = p_parameters->sigma * p_parameters->sigma;
-    double epsilon = p_parameters->epsilon;
 
-    double Epot = 0.0, Epot_cutoff;
-    sr2 = sigmasq / r_cutsq;
-    sr6 = sr2 * sr2 * sr2;
-    sr12 = sr6 * sr6;
-    Epot_cutoff = sr12 - sr6;
+    double epsilon, sigma;
+    double Epot = 0.0;
 
     // Loop through the neighbor list and calculate the forces for each particle pair
     for (size_t k = 0; k < num_nbrs; k++)
@@ -212,10 +207,31 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
 
         // Compute forces if the distance is smaller than the cutoff distance
         if (rij.sq < r_cutsq)
-        {
-            sr2 = sigmasq / rij.sq;
-            sr6 = sr2 * sr2 * sr2;
-            sr12 = sr6 * sr6;
+        {   
+            // Methane-Methane
+            if (p_vectors->type[i] == 0 && p_vectors->type[j] == 0)
+            {
+                epsilon = p_parameters -> epsilon_m;
+                sigma = p_parameters -> sigma_m;
+            }
+            // Ethane-Ethane
+            else if (p_vectors->type[i] == 1 && p_vectors->type[j] == 1)
+            {
+                epsilon = p_parameters -> epsilon_e;
+                sigma = p_parameters -> sigma_e;
+            }
+            // Ethane-Methane
+            else
+            {
+                epsilon = sqrt(p_parameters -> epsilon_m * p_parameters -> epsilon_e);
+                sigma = 0.5 * (p_parameters -> sigma_m + p_parameters -> sigma_e);
+            }
+
+            double sr2 = sigma * sigma / rij.sq;
+            double sr6 = sr2 * sr2 * sr2;
+            double sr12 = sr6 * sr6;
+
+            double Epot_cutoff = sr12 - sr6;
 
             // Calculate the potential energy
             Epot += 4.0 * epsilon * (sr12 - sr6 - Epot_cutoff);

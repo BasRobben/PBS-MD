@@ -36,6 +36,9 @@ print(f"RMSD Total Energy: {rmsd_total}")
 print(f"Normalized RMSD Total Energy: {normalized_rmsd_total}")
 print(f"Mean Kinetic Energy: {mean_kinetic_energy}")
 
+print(f"Mean Temperature: {np.mean(temperature)}")
+print(f"RMSD Temperature: {calculate_rmsd(temperature)}")
+
 # Create subplots with shared x-axis
 fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 10), sharex=True)
 
@@ -56,6 +59,10 @@ ax3.set_xlabel('Time Step [-]', fontsize=12)
 ax3.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 ax3.yaxis.get_major_formatter().set_useOffset(False)
 ax3.legend(fontsize=12)
+
+min_total_energy = np.min(total_energy)
+max_total_energy = np.max(total_energy)
+ax3.set_ylim(min_total_energy - 0.1 * abs(min_total_energy), max_total_energy + 0.1 * abs(max_total_energy))
 
 # # Scatter plot for temperature ratios
 # ax3.plot(step, temperature, label='Temperature', color='green')
