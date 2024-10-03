@@ -10,14 +10,12 @@ void set_parameters(struct Parameters *p_parameters)
 {
   double kT = BOLTZMANN * 298.0;    // thermal energy at 298K [J]
 
-  // // Methane parameters (Task 1 & 2)
-  // // physical units
+  // Methane (CH4) parameters: Physical units
   double epsilon_m = 148.0 * BOLTZMANN;  // LJ interaction strength [J]
   double sigma_m = 3.73e-10;             // LJ particle diameter [m]
   double mass_m = 2.66e-26;              // mass of a CH4 particle [kg]
 
-  // Ethane parameters (Task 3)
-  // physical units
+  // Ethane (CH3) parameters: Physical units
   double epsilon_e = 98.0 * BOLTZMANN;          // LJ interaction strength [J]
   double sigma_e = 3.75e-10;                    // LJ particle diameter [m]
   double mass_e = 2.50e-26;                     // mass of a CH3 unit [kg]
@@ -26,18 +24,18 @@ void set_parameters(struct Parameters *p_parameters)
   double r0 = 1.54e-10;                       // Equilibrium bond length [m]
   double density = 200;                       // density of the system [kg/m3]
 
-  // reduced units
-  p_parameters->epsilon_m = 1.0;                // Set epsilon to 1 in reduced units
-  p_parameters->sigma_m = 1.0;                  // Set sigma to 1 in reduced units
-  p_parameters->mass_m = 1.0;                   // Set mass to 1 in reduced units
+  // Reduced units: Based on parameters of methane
+  p_parameters->epsilon_m = 1.0;                // Set epsilon CH4 of methane to 1 in reduced units
+  p_parameters->sigma_m = 1.0;                  // Set sigma CH4 to 1 in reduced units
+  p_parameters->mass_m = 1.0;                   // Set mass CH4 to 1 in reduced units
 
-  p_parameters->epsilon_e = epsilon_e / epsilon_m;  // LJ interaction strength in reduced units
-  p_parameters->sigma_e = sigma_e / sigma_m;        // LJ particle diameter in reduced units
-  p_parameters->mass_e = mass_e / mass_m;           // mass of a CH3 unit in reduced units
+  p_parameters->epsilon_e = epsilon_e / epsilon_m;  // LJ interaction strength CH3 in reduced units
+  p_parameters->sigma_e = sigma_e / sigma_m;        // LJ particle diameter CH3 in reduced units
+  p_parameters->mass_e = mass_e / mass_m;           // Mass of a CH3 unit in reduced units
 
-  p_parameters->kT = kT / epsilon_m;            // Thermal energy in reduced units
+  p_parameters->kT = kT / epsilon_m;                      // Thermal energy in reduced units
   p_parameters->kb = kb * sigma_m * sigma_m / epsilon_m;  // Bond spring constant in reduced units
-  p_parameters->r0 = r0 / sigma_m;              // Equilibrium bond length in reduced units
+  p_parameters->r0 = r0 / sigma_m;                        // Equilibrium bond length in reduced units
 
   // Adjust the box size to achieve the desired density
   int num_part = 300;                          // number of particles
@@ -45,21 +43,21 @@ void set_parameters(struct Parameters *p_parameters)
   double mole_fraction_methane = 0.5;          // Mole fraction of CH4
 
   // Calculate the number of CH4 and CH3 particles
-  size_t num_methane = (size_t)((mole_fraction_methane * num_part)/(2.0 - mole_fraction_methane));
-  size_t num_ethane = (size_t)((num_part - num_methane));
+  size_t num_CH4 = (size_t)((mole_fraction_methane * num_part)/(2.0 - mole_fraction_methane));
+  size_t num_CH3 = (size_t)((num_part - num_CH4));
 
   // Check if the total number of particles matches the specified number
-  if (num_methane + num_ethane != num_part) {
+  if (num_CH4 + num_CH3 != num_part) {
       fprintf(stderr, "Error: Total number of particles does not match specified number.\n");
       exit(EXIT_FAILURE);
   }
 
   // Assign the number of CH4 and CH3 particles to the parameters struct
-  p_parameters -> num_methane = num_methane;
-  p_parameters -> num_ethane = num_ethane;
+  p_parameters -> num_CH4 = num_CH4;
+  p_parameters -> num_CH3 = num_CH3;
 
   // Calculate box dimensions based on the number of particles, average mass and density
-  double volume = (num_part * (mass_m + 2.0 * mass_e)) / (3.0 * density);   // volume of the box
+  double volume = (num_CH4 * mass_m + num_CH3 * mass_e) / (density);   // volume of the box
   double box_length = pow(volume, 1.0 / 3.0);                               // length of the box
   double L_reduced = box_length / sigma_m;                                  // box length in reduced units
 

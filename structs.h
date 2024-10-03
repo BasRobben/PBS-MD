@@ -34,8 +34,8 @@ struct Parameters
     double epsilon_e;          //!< LJ interaction strength CH3-CH3
     double sigma_e;            //!< LJ particle diameter CH3
 
-    size_t num_methane;       //!< Number of methane particles
-    size_t num_ethane;        //!< Number of ethane particles
+    size_t num_CH4;       //!< Number of methane particles
+    size_t num_CH3;        //!< Number of ethane particles
 
     double r_cut;            //!< Cut-off distance for LJ interaction
     double r_shell;          //!< Shell thickness for neighbor list

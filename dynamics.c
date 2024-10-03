@@ -54,19 +54,20 @@ double update_velocities_half_dt(struct Parameters *p_parameters, struct Nbrlist
     // Loop over all particles and update their velocities
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
-        if (p_vectors -> type[i] == 0) // Methane
+        // Check particle type and update velocity accordingly
+        if (p_vectors -> type[i] == 1) // Methane
         {
             v[i].x += factor_m * f[i].x;  // Update velocity in x-direction
             v[i].y += factor_m * f[i].y;  // Update velocity in y-direction
             v[i].z += factor_m * f[i].z;  // Update velocity in z-direction
             Ekin += p_parameters->mass_m * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z); // Accumulate kinetic energy
         }
-        else if (p_vectors -> type[i] == 1) // Ethane
+        else if (p_vectors -> type[i] == 0) // Ethane
         {
             v[i].x += factor_e * f[i].x;  // Update velocity in x-direction
             v[i].y += factor_e * f[i].y;  // Update velocity in y-direction
             v[i].z += factor_e * f[i].z;  // Update velocity in z-direction
-            Ekin += p_parameters->mass_e * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z);
+            Ekin += p_parameters->mass_e * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z); // Accumulate kinetic energy
         }
 
     }
@@ -114,9 +115,9 @@ double thermostat(struct Parameters *p_parameters, struct Vectors *p_vectors, do
 
     for (size_t i = 0; i < num_part; i++)
     {
-        if (p_vectors -> type[i] == 0) // Methane
+        if (p_vectors -> type[i] == 1) // Methane
             Ekin += p_parameters->mass_m * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z);  // Calculate kinetic energy
-        else if (p_vectors -> type[i] == 1) // Ethane
+        else if (p_vectors -> type[i] == 0) // Ethane
             Ekin += p_parameters->mass_e * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z);  // Calculate kinetic energy
     }
 

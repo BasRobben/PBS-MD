@@ -12,11 +12,12 @@
 void initialise_types(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {
     size_t num_part = p_parameters->num_part;
-    size_t num_methane = p_parameters->num_methane;
-    size_t num_ethane = p_parameters->num_ethane;
+    size_t num_CH4 = p_parameters->num_CH4;
+    size_t num_CH3 = p_parameters->num_CH3;
     
+    // Give each particle a type (0 for CH3 and 1 for CH4)
     for (size_t i = 0; i < num_part; i++){
-        if (i < num_methane)
+        if (i < num_CH3)
             p_vectors->type[i] = 0;
         else
             p_vectors->type[i] = 1;
@@ -26,14 +27,15 @@ void initialise_types(struct Parameters *p_parameters, struct Vectors *p_vectors
 void initialise_bond_connectivity(struct Parameters *p_parameters, struct Vectors *p_vectors)
 {   
     size_t num_part = p_parameters->num_part;
-    size_t num_ethane = p_parameters->num_ethane;
+    size_t num_CH3 = p_parameters->num_CH3;
 
-    if(num_ethane % 2 != 0){
+    // Check if the number of CH3 particles is even
+    if(num_CH3 % 2 != 0){
         fprintf(stderr, "Error: Number of ethane particles must be even\n");
         exit(EXIT_FAILURE);
     }
 
-    int num_bonds = num_ethane / 2;
+    int num_bonds = num_CH3 / 2;
 
     // Free existing bonds if already allocated
     if (p_vectors->bonds != NULL) {
@@ -262,7 +264,7 @@ void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vec
                 ipart++; // Move to the next particle
 
                 // If the particle is ethane, place the second particle
-                if (ipart < num_part && p_vectors->type[ipart - 1] == 1) // Assuming type 1 is ethane
+                if (ipart < num_part && p_vectors->type[ipart - 1] == 0) // Assuming type 1 is ethane
                 {
                     p_vectors->r[ipart].x = p_vectors->r[ipart - 1].x + r0; // Adjust x coordinate by r0
                     p_vectors->r[ipart].y = p_vectors->r[ipart - 1].y;     // Keep y coordinate the same
@@ -284,20 +286,22 @@ void initialise_velocities(struct Parameters *p_parameters, struct Vectors *p_ve
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
         // Initialize velocities based on particle type
-        if (p_vectors->type[i] == 0) { // Methane
+        // Particles of type CH4
+        if (p_vectors->type[i] == 1) {
             double sqrtktm = sqrt(p_parameters->kT / p_parameters->mass_m);
             p_vectors->v[i].x = sqrtktm * gauss();
             p_vectors->v[i].y = sqrtktm * gauss();
             p_vectors->v[i].z = sqrtktm * gauss();
         } 
-        else if (p_vectors->type[i] == 1) { // Ethane
+        // Particles of type CH3: Making sure the velocities of bonded CH3 are correlated
+        else if (p_vectors->type[i] == 0)  {
             double sqrtktm = sqrt(p_parameters->kT / p_parameters->mass_e);
             p_vectors->v[i].x = sqrtktm * gauss();
             p_vectors->v[i].y = sqrtktm * gauss();
             p_vectors->v[i].z = sqrtktm * gauss();
 
             // Check for the next particle to adjust its velocity
-            if (i + 1 < p_parameters->num_part && p_vectors->type[i + 1] == 1) { // Next is also CH3
+            if (i + 1 < p_parameters->num_part && p_vectors->type[i + 1] == 0) {
                 p_vectors->v[i + 1].x = p_vectors->v[i].x + (sqrtktm * gauss()) * 0.1;
                 p_vectors->v[i + 1].y = p_vectors->v[i].y + (sqrtktm * gauss()) * 0.1;
                 p_vectors->v[i + 1].z = p_vectors->v[i].z + (sqrtktm * gauss()) * 0.1;

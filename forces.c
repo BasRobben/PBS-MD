@@ -209,13 +209,13 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
         if (rij.sq < r_cutsq)
         {   
             // Methane-Methane
-            if (p_vectors->type[i] == 0 && p_vectors->type[j] == 0)
+            if (p_vectors->type[i] == 1 && p_vectors->type[j] == 1)
             {
                 epsilon = p_parameters -> epsilon_m;
                 sigma = p_parameters -> sigma_m;
             }
             // Ethane-Ethane
-            else if (p_vectors->type[i] == 1 && p_vectors->type[j] == 1)
+            else if (p_vectors->type[i] == 0 && p_vectors->type[j] == 0)
             {
                 epsilon = p_parameters -> epsilon_e;
                 sigma = p_parameters -> sigma_e;
