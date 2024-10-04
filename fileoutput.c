@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "constants.h"
 #include "memory.h"
 #include "structs.h"
@@ -10,31 +11,49 @@
 // If reset = 0 the data is appended.
 void record_trajectories_pdb(int reset, struct Parameters *p_parameters, struct Vectors *p_vectors, double time)
 {
-  FILE *fp_traj;
-  char filename[1024];
-  double rs = p_parameters->rescale_output;
+    FILE *fp_traj;
+    char filename[1024];
+    double rs = p_parameters->rescale_output;
 
-  snprintf(filename, 1024, "%s%s", p_parameters->filename_pdb, ".pdb");
-  if (reset == 1)
-  {
-    fp_traj = fopen(filename, "w");
-  }
-  else
-  {
-    fp_traj = fopen(filename, "a");
-  }
+    snprintf(filename, 1024, "%s%s", p_parameters->filename_pdb, ".pdb");
+    if (reset == 1)
+    {
+        fp_traj = fopen(filename, "w");
+    }
+    else
+    {
+        fp_traj = fopen(filename, "a");
+    }
 
-  fprintf(fp_traj, "MODEL\n");
-  fprintf(fp_traj, "REMARK TIME = %f\n", time);
-  fprintf(fp_traj, "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-10s%-3s\n", rs*p_parameters->L.x, rs*p_parameters->L.y, rs*p_parameters->L.z, 90.0, 90.0, 90.0, "P 1", "1");
-  for (size_t i = 0; i < p_parameters->num_part; i++)
-  {
-    //fprintf(fp_traj, "HETATM %5u  C 1 UNK     1    %7.4f %7.4f %7.4f   1.0   1.0\n", (unsigned int)i % 100000, rs*p_vectors->r[i].x, rs*p_vectors->r[i].y, rs*p_vectors->r[i].z);
-    fprintf(fp_traj, "HETATM%5u  C   UNK A   1    %8.3f%8.3f%8.3f  1.00  0.00           C\n", (unsigned int)i % 100000, rs*p_vectors->r[i].x, rs*p_vectors->r[i].y, rs*p_vectors->r[i].z);
-  }
-  fprintf(fp_traj, "ENDMDL\n");
+    fprintf(fp_traj, "MODEL\n");
+    fprintf(fp_traj, "REMARK TIME = %f\n", time);
+    fprintf(fp_traj, "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f %-10s%-3s\n", 
+            rs*p_parameters->L.x, rs*p_parameters->L.y, rs*p_parameters->L.z, 
+            90.0, 90.0, 90.0, "P 1", "1");
+    
+    for (size_t i = 0; i < p_parameters->num_part; i++)
+    {
+        // Adjust the atom type and color based on the particle type
+        char atom_type[3];
+        char color[8];
+        
+        if (p_vectors->type[i] == 1) // Assuming type 1 is CH4
+        {
+            snprintf(atom_type, sizeof(atom_type), "C"); // Use "C" for CH4
+        }
+        else if (p_vectors->type[i] == 0) // Assuming type 0 is CH3
+        {
+            snprintf(atom_type, sizeof(atom_type), "E"); // Use "E" for CH3
+        }
 
-  fclose(fp_traj);
+        // Include color as a comment or a separate field if the format supports it
+        fprintf(fp_traj, "HETATM%5u  %s  UNK A   1    %8.3f%8.3f%8.3f  1.00  0.00           C ; %s\n", 
+                (unsigned int)i % 100000, atom_type, 
+                rs*p_vectors->r[i].x, rs*p_vectors->r[i].y, rs*p_vectors->r[i].z, color);
+    }
+
+    fprintf(fp_traj, "ENDMDL\n");
+    fclose(fp_traj);
 }
 
 // Write the particle positions to a xyz file
@@ -95,4 +114,27 @@ void load_restart(struct Parameters *p_parameters, struct Vectors *p_vectors)
   fread(p_vectors->v, sz, 1, p_file);
   fread(p_vectors->f, sz, 1, p_file);
   fclose(p_file);
+}
+
+
+void collect_velocity_data(struct Parameters *p_parameters, struct Vectors *p_vectors, size_t step, int is_first_call) {
+  size_t num_part = p_parameters->num_part;
+
+  FILE *velocity_file;
+  if (is_first_call) {
+      velocity_file = fopen("velocity_data.txt", "w"); // Overwrite file on first call
+      fprintf(velocity_file, "Step\tType\tVelocity\n");
+  } else {
+      velocity_file = fopen("velocity_data.txt", "a"); // Append to file on subsequent calls
+  }
+
+  for (size_t i = 0; i < num_part; ++i) {
+    double vx = p_vectors->v[i].x;
+    double vy = p_vectors->v[i].y;
+    double vz = p_vectors->v[i].z;
+    double velocity = sqrt(vx * vx + vy * vy + vz * vz);
+    fprintf(velocity_file, "%05lu\t%d\t%f\n", (long unsigned)step, p_vectors->type[i], velocity);
+  }
+
+  fclose(velocity_file);
 }

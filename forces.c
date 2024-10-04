@@ -208,19 +208,19 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
         // Compute forces if the distance is smaller than the cutoff distance
         if (rij.sq < r_cutsq)
         {   
-            // Methane-Methane
+            // CH4-CH4
             if (p_vectors->type[i] == 1 && p_vectors->type[j] == 1)
             {
                 epsilon = p_parameters -> epsilon_m;
                 sigma = p_parameters -> sigma_m;
             }
-            // Ethane-Ethane
+            // CH3-CH3
             else if (p_vectors->type[i] == 0 && p_vectors->type[j] == 0)
             {
                 epsilon = p_parameters -> epsilon_e;
                 sigma = p_parameters -> sigma_e;
             }
-            // Ethane-Methane
+            // CH3-CH4
             else
             {
                 epsilon = sqrt(p_parameters -> epsilon_m * p_parameters -> epsilon_e);
@@ -252,4 +252,47 @@ double calculate_forces_nb(struct Parameters *p_parameters, struct Nbrlist *p_nb
     }
 
     return Epot;  // Return the potential energy due to non-bonded interactions
+}
+
+double calculate_pressure(struct Parameters *p_parameters, struct Vectors *p_vectors) {
+    struct Vec3D *v = p_vectors->v;
+    struct Vec3D *r = p_vectors->r;
+    struct Vec3D *f = p_vectors->f;
+    size_t num_part = p_parameters->num_part;
+    double volume = p_parameters->L.x * p_parameters->L.y * p_parameters->L.z;
+
+    double Ekin = 0.0;
+    double virial_sum = 0.0;
+
+    // Uncomment to compute the pressure using the virial theorem
+    // // Compute kinetic energy and virial sum
+    // for (size_t i = 0; i < num_part; i++) {
+    //     double mass = (p_vectors->type[i] == 1) ? p_parameters->mass_m : p_parameters->mass_e;
+    //     double vx = v[i].x, vy = v[i].y, vz = v[i].z;
+    //     Ekin += mass * (vx * vx + vy * vy + vz * vz);
+
+    //     for (size_t j = i + 1; j < num_part; j++) {
+    //         // Distance vector between particles i and j
+    //         double rx = r[i].x - r[j].x;
+    //         double ry = r[i].y - r[j].y;
+    //         double rz = r[i].z - r[j].z;
+
+    //         // Force vector between particles i and j
+    //         double fx = f[i].x - f[j].x;
+    //         double fy = f[i].y - f[j].y;
+    //         double fz = f[i].z - f[j].z;
+
+    //         // Virial term
+    //         virial_sum += (fx * rx + fy * ry + fz * rz);
+    //     }
+    // }
+
+    // Kinetic term
+    double kinetic_term = (2.0 * Ekin) / (3.0 * volume);
+
+    // Virial term
+    double virial_term = virial_sum / (3.0 * volume);
+
+    // Total pressure
+    return kinetic_term + virial_term;
 }

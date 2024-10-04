@@ -37,9 +37,7 @@ void set_parameters(struct Parameters *p_parameters)
   p_parameters->kb = kb * sigma_m * sigma_m / epsilon_m;  // Bond spring constant in reduced units
   p_parameters->r0 = r0 / sigma_m;                        // Equilibrium bond length in reduced units
 
-  // Adjust the box size to achieve the desired density
-  int num_part = 300;                          // number of particles
-
+  int num_part = 300;                         // Number of particles
   double mole_fraction_methane = 0.5;          // Mole fraction of CH4
 
   // Calculate the number of CH4 and CH3 particles
@@ -66,7 +64,7 @@ void set_parameters(struct Parameters *p_parameters)
   p_parameters->num_dt_steps = 20000;                        //number of time steps
   p_parameters->exclude_12_nb = 1;                          // 1-2 connected atoms exluded from non-bonded interactions 
   p_parameters->exclude_13_nb = 1;                          // 1-3 connected atoms exluded from non-bonded interactions
-  p_parameters->dt = 0.000001;                                  //integration time step
+  p_parameters->dt = 0.001;                                  //integration time step
   p_parameters->L = (struct Vec3D){L_reduced, L_reduced, L_reduced}; //box size adjusted for density
   p_parameters->r_cut = 10e-10 / sigma_m;                   //cut-off distance used for neigbor list
   p_parameters->r_shell = 0.5;                              //shell thickness for neighbor list

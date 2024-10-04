@@ -73,4 +73,17 @@ double calculate_forces_angle(struct Parameters *p_parameters, struct Vectors *p
  */
 double calculate_forces_dihedral(struct Parameters *p_parameters, struct Vectors *p_vectors);
 
+/**
+ * @brief Calculate the pressure of the system based on the virial theorem.
+ * 
+ * The pressure of the system is calculated based on the virial theorem, which relates the
+ * pressure to the kinetic and potential energy of the system. The pressure is computed as the
+ * sum of the kinetic energy and the virial term, divided by the volume of the simulation box.
+ * 
+ * @param p_parameters used members: L
+ * @param p_vectors used members: v, f
+ * @return double pressure of the system
+ */
+double calculate_pressure(struct Parameters *p_parameters, struct Vectors *p_vectors);
+
 #endif /* FORCES_H_ */

@@ -40,4 +40,21 @@ void boundary_conditions(struct Parameters *p_parameters, struct Vectors *p_vect
  */
 double thermostat(struct Parameters *p_parameters, struct Vectors *p_vectors, double Ekin);
 
+/**
+ * @brief Calculate the center of mass of the system
+ * @param[in] p_parameters used members: num_CH3, num_CH4
+ * @param[in] p_vectors used members: r, type
+ * @param[out] com center of mass of each molecule
+ * @param[in] num_part number of particles
+ */
+void calculate_center_of_mass(struct Parameters *p_parameters, struct Vectors *p_vectors, struct Vec3D *com, size_t num_part);
+
+/**
+ * @brief Calculate the center of mass of the system
+ * @param[in] p_parameters used members: num_CH3, num_CH4
+ * @param[in] p_vectors used members: r, type
+ * @param[in] num_bins number of bins for the RDF
+ */
+void calculate_rdf(struct Parameters *p_parameters, struct Vectors *p_vectors, size_t num_bins);
+
 #endif /* DYNAMICS_H_ */

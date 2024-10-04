@@ -276,6 +276,7 @@ void initialise_positions(struct Parameters *p_parameters, struct Vectors *p_vec
     }
 }
 
+
 // This function initializes the velocities of particles based on the Maxwell-Boltzmann distribution.
 // The total momentum is also removed to ensure zero total momentum (important for stability).
 void initialise_velocities(struct Parameters *p_parameters, struct Vectors *p_vectors)

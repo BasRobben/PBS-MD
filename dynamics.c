@@ -55,14 +55,14 @@ double update_velocities_half_dt(struct Parameters *p_parameters, struct Nbrlist
     for (size_t i = 0; i < p_parameters->num_part; i++)
     {
         // Check particle type and update velocity accordingly
-        if (p_vectors -> type[i] == 1) // Methane
+        if (p_vectors -> type[i] == 1) // CH4
         {
             v[i].x += factor_m * f[i].x;  // Update velocity in x-direction
             v[i].y += factor_m * f[i].y;  // Update velocity in y-direction
             v[i].z += factor_m * f[i].z;  // Update velocity in z-direction
             Ekin += p_parameters->mass_m * (v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z); // Accumulate kinetic energy
         }
-        else if (p_vectors -> type[i] == 0) // Ethane
+        else if (p_vectors -> type[i] == 0) // CH3
         {
             v[i].x += factor_e * f[i].x;  // Update velocity in x-direction
             v[i].y += factor_e * f[i].y;  // Update velocity in y-direction
@@ -110,7 +110,7 @@ double thermostat(struct Parameters *p_parameters, struct Vectors *p_vectors, do
     double kT = p_parameters->kT;               // Thermal energy
 
     double Nfree = 3*(num_part - 1);            // Number of degrees of freedom
-    double tau = 0.001;                          // Relaxation time for the thermostat
+    double tau = 0.1;                          // Relaxation time for the thermostat
     Ekin = 0;                                   // Reset kinetic energy
 
     for (size_t i = 0; i < num_part; i++)
@@ -122,14 +122,111 @@ double thermostat(struct Parameters *p_parameters, struct Vectors *p_vectors, do
     }
 
     TmeasT0 = Ekin / (Nfree * kT);                // Measured temperature divided by T0
-    // lambda = sqrt(1.0 + p_parameters->dt / tau * (1 / TmeasT0 - 1.0));  // Scaling factor
+    lambda = sqrt(1.0 + p_parameters->dt / tau * (1 / TmeasT0 - 1.0));  // Scaling factor
 
-    // for (size_t i = 0; i < num_part; i++)
-    // {
-    //     v[i].x *= lambda;  // Rescale velocity in x-direction
-    //     v[i].y *= lambda;  // Rescale velocity in y-direction
-    //     v[i].z *= lambda;  // Rescale velocity in z-direction
-    // }
+    for (size_t i = 0; i < num_part; i++)
+    {
+        v[i].x *= lambda;  // Rescale velocity in x-direction
+        v[i].y *= lambda;  // Rescale velocity in y-direction
+        v[i].z *= lambda;  // Rescale velocity in z-direction
+    }
     
     return TmeasT0;  // Return the temperature ratio
+}
+
+void calculate_center_of_mass(struct Parameters *p_parameters, struct Vectors *p_vectors, struct Vec3D *com) {
+    size_t num_molecules = p_parameters->num_CH3 / 2 + p_parameters->num_CH4; // Total number of molecules
+    size_t ethane_count = 0; // Counter for ethane molecules
+    size_t methane_count = 0; // Counter for methane molecules
+
+    // Initialize COM values to zero
+    for (size_t j = 0; j < num_molecules; j++) {
+        com[j].x = 0.0;
+        com[j].y = 0.0;
+        com[j].z = 0.0;
+    }
+
+    // Loop over all particles
+    for (size_t i = 0; i < p_parameters->num_part; i++) {
+        if (p_vectors->type[i] == 0) { // CH3 group of ethane
+            size_t molecule_index = ethane_count / 2;
+
+            // First CH3 group of the ethane molecule
+            if (ethane_count % 2 == 0) {
+                com[molecule_index].x += p_vectors->r[i].x; // Accumulate for averaging
+                com[molecule_index].y += p_vectors->r[i].y;
+                com[molecule_index].z += p_vectors->r[i].z;
+            } else { // Second CH3 group of the ethane molecule
+                com[molecule_index].x += p_vectors->r[i].x; // Accumulate for averaging
+                com[molecule_index].y += p_vectors->r[i].y;
+                com[molecule_index].z += p_vectors->r[i].z;
+
+                // Average after processing both CH3 groups
+                com[molecule_index].x /= 2.0;
+                com[molecule_index].y /= 2.0;
+                com[molecule_index].z /= 2.0;
+            }
+            ethane_count++;
+        } else if (p_vectors->type[i] == 1) { // Methane
+            size_t molecule_index = p_parameters->num_CH3 / 2 + methane_count;
+            com[molecule_index].x = p_vectors->r[i].x;
+            com[molecule_index].y = p_vectors->r[i].y;
+            com[molecule_index].z = p_vectors->r[i].z;
+            methane_count++;
+        }
+    }
+}
+
+void calculate_rdf(struct Parameters *p_parameters, struct Vectors *p_vectors, size_t num_bins) {
+    size_t num_part = p_parameters->num_part;
+    size_t num_molecules = p_parameters->num_CH3 / 2 + p_parameters->num_CH4;
+
+    double r_max = fmin(fmin(p_parameters->L.x, p_parameters->L.y), p_parameters->L.z) / 2.0;
+    double bin_width = r_max / num_bins;
+
+    double *gij = (double *)calloc(num_bins, sizeof(double));
+    struct Vec3D *com = (struct Vec3D *)malloc(num_molecules * sizeof(struct Vec3D));
+
+    // Calculate center of mass
+    calculate_center_of_mass(p_parameters, p_vectors, com);
+
+    // Loop through all molecule pairs
+    for (size_t i = 0; i < num_molecules; ++i) {
+        for (size_t j = i + 1; j < num_molecules; ++j) {
+            double dx = com[i].x - com[j].x;
+            double dy = com[i].y - com[j].y;
+            double dz = com[i].z - com[j].z;
+
+            // Apply minimum image convention
+            dx -= round(dx / p_parameters->L.x) * p_parameters->L.x;
+            dy -= round(dy / p_parameters->L.y) * p_parameters->L.y;
+            dz -= round(dz / p_parameters->L.z) * p_parameters->L.z;
+
+            double r = sqrt(dx * dx + dy * dy + dz * dz);
+            int ibin = (int)(r / bin_width);
+            if (ibin < num_bins) {
+                gij[ibin] += 2.0; // Increment count for this bin
+            }
+        }
+    }
+
+    // Calculate normalization for gij
+    double volume = p_parameters->L.x * p_parameters->L.y * p_parameters->L.z;
+    double density = num_molecules / volume; // Average density of molecules
+
+    for (size_t ibin = 0; ibin < num_bins; ++ibin) {
+        double shell_volume = (4.0 / 3.0) * PI * (pow(ibin+1, 3) - pow(ibin, 3)) * pow(bin_width, 3);
+        gij[ibin] = gij[ibin] / (density * shell_volume * num_molecules);
+    }
+
+    // Write RDF data to file
+    FILE *file = fopen("rdf_data.txt", "w");
+    if (file) { // Check if the file was opened successfully
+        for (size_t ibin = 0; ibin < num_bins; ++ibin) {
+            fprintf(file, "%f %f\n", (ibin + 0.5) * bin_width, gij[ibin]);
+        }
+        fclose(file); // Close the file after writing
+    } else {
+        fprintf(stderr, "Error: Unable to open file for writing.\n");
+    }
 }

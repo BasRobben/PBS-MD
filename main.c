@@ -57,7 +57,8 @@ int main(void)
     struct Parameters parameters; 
     struct Nbrlist nbrlist; 
     size_t step; 
-    double Ekin, Epot, time, T; 
+    double Ekin, Epot, time, T, P; 
+    int is_first_call = 1;
 
     // Step 1: Set the simulation parameters from input files
     set_parameters(&parameters); 
@@ -66,17 +67,13 @@ int main(void)
     alloc_memory(&parameters, &vectors, &nbrlist); 
 
     // Check if a restart is required
-    if (parameters.load_restart == 1) 
-    { 
+    if (parameters.load_restart == 1) { 
         load_restart(&parameters, &vectors); 
         initialise_structure(&parameters, &vectors, &nbrlist); 
         step = 0; 
         time = 0.0; 
     } 
-    else 
-    {   
-    // TODO: Initialize particle types (methane and ethane) in vectors.type array
-    // TODO: Implement the bonds between ethane's CH3 groups in initialise_bonds (initialise.c)
+    else {   
         initialise(&parameters, &vectors, &nbrlist, &step, &time);
     }
 
@@ -96,9 +93,6 @@ int main(void)
         return 1;
     }
 
-    // Write header to the file
-    fprintf(data_file, "Step\tTime\tEpot\tEkin\tEtot\tT\n");
-
     // Main MD loop using velocity-Verlet integration
     while (step < parameters.num_dt_steps) 
     { 
@@ -110,6 +104,8 @@ int main(void)
 
         // The Berendsen thermostat to maintain temperature
         T = thermostat(&parameters, &vectors, Ekin);
+
+        P = calculate_pressure(&parameters, &vectors);
 
         // Update positions
         update_positions(&parameters, &nbrlist, &vectors); 
@@ -134,31 +130,24 @@ int main(void)
         if (step % parameters.num_dt_restart == 0) 
             save_restart(&parameters, &vectors); 
 
-        // TODO: Implement on-the-fly analysis of temperature, energy, and RDF
+        // Uncomment to collect velocity data for analysis
+        // if (step == 5000) {
+        //     collect_velocity_data(&parameters, &vectors, step, is_first_call);
+        //     is_first_call = 0; // Set to 0 after the first call
+        // }
 
         // Print to file to monitor the progress of the simulation
-        fprintf(data_file, "%lu\t%f\t%f\t%f\t%f\t%f\n", (long unsigned)step, time, Epot, Ekin, Epot + Ekin, T);
-
-
-        for (size_t i = 0; i < vectors.num_bonds; ++i) {
-        struct Bond bond = vectors.bonds[i];
-        struct Vec3D r1 = vectors.r[bond.i];
-        struct Vec3D r2 = vectors.r[bond.j];
-        
-        double dx = r2.x - r1.x;
-        double dy = r2.y - r1.y;
-        double dz = r2.z - r1.z;
-        double distance = sqrt(dx * dx + dy * dy + dz * dz);
-        
-        // printf("Bond between particle %zu and %zu: Length = %f\n", bond.i, bond.j, distance * parameters.sigma);
+        fprintf(data_file, "%lu\t%f\t%f\t%f\t%f\t%f\t%f\n", (long unsigned)step, time, Epot, Ekin, Epot + Ekin, T, P);
     }
-    } 
 
     // Save final state
-    save_restart(&parameters, &vectors); 
+    save_restart(&parameters, &vectors);
+
+    // Calculate radial distribution function
+    calculate_rdf(&parameters, &vectors, 100);
 
     // Step 5: Free memory and clean up
     free_memory(&vectors, &nbrlist); 
 
-    return 0; 
+    return 0;
 }

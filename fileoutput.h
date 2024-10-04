@@ -35,4 +35,13 @@ void save_restart(struct Parameters *p_parameters, struct Vectors *p_vectors);
  */
 void load_restart(struct Parameters *p_parameters, struct Vectors *p_vectors);
 
+/**
+ * @brief Collect velocity data for analysis
+ * 
+ * @param p_parameters
+ * @param p_vectors
+ * @param time
+ */
+void collect_velocity_data(struct Parameters *p_parameters, struct Vectors *p_vectors, size_t step, int is_first_call);
+
 #endif /* FILEOUTPUT_H_ */
